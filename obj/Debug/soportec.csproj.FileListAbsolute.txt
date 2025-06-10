@@ -72,3 +72,5 @@ C:\Users\USER\Documents\SEPTIMO\Desarrollo_y_aplicaciones_web\soportec\obj\Debug
 C:\Users\USER\Documents\SEPTIMO\Desarrollo_y_aplicaciones_web\soportec\obj\Debug\soportec.csproj.Up2Date
 C:\Users\USER\Documents\SEPTIMO\Desarrollo_y_aplicaciones_web\soportec\obj\Debug\soportec.dll
 C:\Users\USER\Documents\SEPTIMO\Desarrollo_y_aplicaciones_web\soportec\obj\Debug\soportec.pdb
+C:\Proyectos_ASP.NET\soportec\obj\Debug\soportec.dll
+C:\Proyectos_ASP.NET\soportec\obj\Debug\soportec.pdb
