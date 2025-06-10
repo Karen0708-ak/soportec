@@ -1,168 +1,156 @@
 ﻿using System;
-using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
-using System.Web.UI;
+using System.Configuration;
 using System.Web.UI.WebControls;
 
 namespace soportec
 {
     public partial class SistemaOperativo : System.Web.UI.Page
     {
-        string cadenaConexion;
-        SqlConnection conexion;
+        SqlConnection cn = new SqlConnection(ConfigurationManager.ConnectionStrings["conexionSistema"].ConnectionString);
 
         protected void Page_Load(object sender, EventArgs e)
         {
-            cadenaConexion = ConfigurationManager.ConnectionStrings["conexionSsitema"].ConnectionString;
-            conexion = new SqlConnection(cadenaConexion);
-
             if (!IsPostBack)
             {
-                consultarSO();
+                ListarSistemasOperativos();
             }
         }
 
-        public void limpiarCampos()
+        // Método para listar los sistemas operativos en el GridView
+        void ListarSistemasOperativos()
         {
-            txt_nombre_so.Text = "";
-            txt_version_so.Text = "";
-            hf_id_so.Value = "";
+            SqlDataAdapter da = new SqlDataAdapter("sp_ListarSistemasOperativos", cn);
+            da.SelectCommand.CommandType = CommandType.StoredProcedure;
+            DataTable dt = new DataTable();
+            da.Fill(dt);
+            gv_sistemas_operativos.DataSource = dt;
+            gv_sistemas_operativos.DataBind();
         }
 
-        protected void btn_cancelar_Click(object sender, EventArgs e)
-        {
-            limpiarCampos();
-            lbl_mensaje.Text = "Formulario limpiado.";
-        }
-
+        // Método para agregar un nuevo sistema operativo
         protected void btn_guardar_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrEmpty(hf_id_so.Value))
-            {
-                insertarSO();
-            }
-            else
-            {
-                actualizarSO();
-            }
+            string nombre = txt_nombre.Text.Trim();
+            string version = txt_version.Text.Trim();
+            string documentacion = txt_documentacion.Text.Trim();
+
+            SqlCommand cmd = new SqlCommand("sp_AgregarSistemaOperativo", cn);
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            cmd.Parameters.AddWithValue("@nombre", nombre);
+            cmd.Parameters.AddWithValue("@version", version);
+            cmd.Parameters.AddWithValue("@documentacion", string.IsNullOrEmpty(documentacion) ? (object)DBNull.Value : documentacion);
+
+            cn.Open();
+            cmd.ExecuteNonQuery();
+            cn.Close();
+
+            // Limpiar campos después de guardar
+            txt_nombre.Text = "";
+            txt_version.Text = "";
+            txt_documentacion.Text = "";
+
+            // Actualizar el GridView
+            ListarSistemasOperativos();
+
+            // Mensaje de éxito
+            labl_mensajes.Text = "Sistema Operativo agregado correctamente.";
         }
 
-        private void insertarSO()
+        // Método para cancelar y limpiar los campos
+        protected void btn_cancelar_Click(object sender, EventArgs e)
         {
-            SqlCommand comando = new SqlCommand("sp_insertar_so", conexion);
-            comando.CommandType = CommandType.StoredProcedure;
-
-            comando.Parameters.AddWithValue("@nombre_so", txt_nombre_so.Text);
-            comando.Parameters.AddWithValue("@version_so", txt_version_so.Text);
-
-            try
-            {
-                conexion.Open();
-                comando.ExecuteNonQuery();
-                conexion.Close();
-
-                lbl_mensaje.Text = "Sistema Operativo insertado correctamente.";
-                limpiarCampos();
-                consultarSO();
-            }
-            catch (Exception ex)
-            {
-                lbl_mensaje.Text = "Error: " + ex.Message;
-                if (conexion.State == ConnectionState.Open)
-                    conexion.Close();
-            }
+            txt_nombre.Text = "";
+            txt_version.Text = "";
+            txt_documentacion.Text = "";
+            labl_mensajes.Text = "";
         }
 
-        private void actualizarSO()
+        // Método para manejar las acciones de editar y eliminar
+        protected void gv_sistemas_operativos_RowCommand(object sender, GridViewCommandEventArgs e)
         {
-            SqlCommand comando = new SqlCommand("sp_actualizar_so", conexion);
-            comando.CommandType = CommandType.StoredProcedure;
+            int index = Convert.ToInt32(e.CommandArgument);
+            GridViewRow row = gv_sistemas_operativos.Rows[index];
+            int id = Convert.ToInt32(gv_sistemas_operativos.DataKeys[index].Value);
 
-            comando.Parameters.AddWithValue("@id_so", Convert.ToInt32(hf_id_so.Value));
-            comando.Parameters.AddWithValue("@nombre_so", txt_nombre_so.Text);
-            comando.Parameters.AddWithValue("@version_so", txt_version_so.Text);
-
-            try
-            {
-                conexion.Open();
-                comando.ExecuteNonQuery();
-                conexion.Close();
-
-                lbl_mensaje.Text = "Sistema Operativo actualizado correctamente.";
-                limpiarCampos();
-                consultarSO();
-            }
-            catch (Exception ex)
-            {
-                lbl_mensaje.Text = "Error al actualizar: " + ex.Message;
-                if (conexion.State == ConnectionState.Open)
-                    conexion.Close();
-            }
-        }
-
-        public void consultarSO()
-        {
-            SqlCommand comando = new SqlCommand("sp_listar_so", conexion);
-            comando.CommandType = CommandType.StoredProcedure;
-
-            try
-            {
-                conexion.Open();
-                SqlDataAdapter adaptador = new SqlDataAdapter(comando);
-                DataTable dt = new DataTable();
-                adaptador.Fill(dt);
-
-                gv_so.DataSource = dt;
-                gv_so.DataBind();
-                conexion.Close();
-            }
-            catch (Exception ex)
-            {
-                lbl_mensaje.Text = "Error al consultar: " + ex.Message;
-                if (conexion.State == ConnectionState.Open)
-                    conexion.Close();
-            }
-        }
-
-        protected void gv_so_RowDeleting(object sender, GridViewDeleteEventArgs e)
-        {
-            int id = Convert.ToInt32(gv_so.DataKeys[e.RowIndex].Value);
-
-            SqlCommand comando = new SqlCommand("sp_eliminar_so", conexion);
-            comando.CommandType = CommandType.StoredProcedure;
-            comando.Parameters.AddWithValue("@id_so", id);
-
-            try
-            {
-                conexion.Open();
-                comando.ExecuteNonQuery();
-                conexion.Close();
-
-                lbl_mensaje.Text = "Sistema Operativo eliminado correctamente.";
-                consultarSO();
-            }
-            catch (Exception ex)
-            {
-                lbl_mensaje.Text = "Error al eliminar: " + ex.Message;
-                if (conexion.State == ConnectionState.Open)
-                    conexion.Close();
-            }
-        }
-
-        protected void gv_so_RowCommand(object sender, GridViewCommandEventArgs e)
-        {
             if (e.CommandName == "EditarSO")
             {
-                int index = Convert.ToInt32(e.CommandArgument);
-                GridViewRow row = gv_so.Rows[index];
+                // Cargar datos en los controles de texto para editar
+                hf_id_sistema_operativo.Value = id.ToString();
+                txt_nombre.Text = row.Cells[1].Text;
+                txt_version.Text = row.Cells[2].Text;
+                txt_documentacion.Text = row.Cells[3].Text;
+            }
+            else if (e.CommandName == "EliminarSO")
+            {
+                SqlCommand cmd = new SqlCommand("sp_EliminarSistemaOperativo", cn);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@id", id);
 
-                hf_id_so.Value = gv_so.DataKeys[index].Value.ToString();
-                txt_nombre_so.Text = row.Cells[1].Text;
-                txt_version_so.Text = row.Cells[2].Text;
+                cn.Open();
+                cmd.ExecuteNonQuery();
+                cn.Close();
 
-                lbl_mensaje.Text = "Edición en curso...";
+                // Actualizar el GridView después de eliminar
+                ListarSistemasOperativos();
+
+                // Mensaje de éxito
+                labl_mensajes.Text = "Sistema Operativo eliminado correctamente.";
             }
         }
+
+        // Método para actualizar los datos de un sistema operativo
+        protected void btn_actualizar_Click(object sender, EventArgs e)
+        {
+            int id = Convert.ToInt32(hf_id_sistema_operativo.Value);
+            string nombre = txt_nombre.Text.Trim();
+            string version = txt_version.Text.Trim();
+            string documentacion = txt_documentacion.Text.Trim();
+
+            SqlCommand cmd = new SqlCommand("sp_ActualizarSistemaOperativo", cn);
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            cmd.Parameters.AddWithValue("@id", id);
+            cmd.Parameters.AddWithValue("@nombre", nombre);
+            cmd.Parameters.AddWithValue("@version", version);
+            cmd.Parameters.AddWithValue("@documentacion", string.IsNullOrEmpty(documentacion) ? (object)DBNull.Value : documentacion);
+
+            cn.Open();
+            cmd.ExecuteNonQuery();
+            cn.Close();
+
+            // Limpiar campos después de actualizar
+            hf_id_sistema_operativo.Value = "";
+            txt_nombre.Text = "";
+            txt_version.Text = "";
+            txt_documentacion.Text = "";
+
+            // Actualizar el GridView
+            ListarSistemasOperativos();
+
+            // Mensaje de éxito
+            labl_mensajes.Text = "Sistema Operativo actualizado correctamente.";
+        }
+        protected void gv_sistemas_operativos_RowDeleting(object sender, GridViewDeleteEventArgs e)
+        {
+            int id = Convert.ToInt32(gv_sistemas_operativos.DataKeys[e.RowIndex].Value);
+
+            SqlCommand cmd = new SqlCommand("sp_EliminarSistemaOperativo", cn);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@id", id);
+
+            cn.Open();
+            cmd.ExecuteNonQuery();
+            cn.Close();
+
+            // Actualizar el GridView después de eliminar
+            ListarSistemasOperativos();
+
+            // Mensaje de éxito
+            labl_mensajes.Text = "Sistema Operativo eliminado correctamente.";
+        }
+
     }
 }

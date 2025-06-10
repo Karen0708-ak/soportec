@@ -1,44 +1,43 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
-using System.Linq;
-using System.Web;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 
 namespace soportec
 {
     public partial class _Default : Page
-
     {
-        //Variables para conectar
-        string candenaConexion;
+        // Variables para conectar
+        string cadenaConexion;
         SqlConnection conexion;
+
         protected void Page_Load(object sender, EventArgs e)
         {
-            this.candenaConexion = ConfigurationManager.ConnectionStrings["conexionSistema"].ConnectionString;
-            this.conexion = new SqlConnection(candenaConexion);
+            this.cadenaConexion = ConfigurationManager.ConnectionStrings["conexionSistema"].ConnectionString;
+            this.conexion = new SqlConnection(cadenaConexion);
+
             if (!IsPostBack)
             {
                 CargarEquipos();
             }
-
         }
+
         private void CargarEquipos()
         {
             try
             {
-                SqlCommand cmd = new SqlCommand("sp_ListarEquipos", conexion); // SP ya creado
-                cmd.CommandType = CommandType.StoredProcedure;
+                using (SqlCommand cmd = new SqlCommand("sp_ListarEquipos", conexion)) // SP ya creado
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    SqlDataAdapter adaptador = new SqlDataAdapter(cmd);
+                    DataTable tabla = new DataTable();
+                    adaptador.Fill(tabla);
 
-                SqlDataAdapter adaptador = new SqlDataAdapter(cmd);
-                DataTable tabla = new DataTable();
-                adaptador.Fill(tabla);
-
-                gridEquipos.DataSource = tabla;
-                gridEquipos.DataBind();
+                    gridEquipos.DataSource = tabla;
+                    gridEquipos.DataBind();
+                }
             }
             catch (Exception ex)
             {
@@ -48,16 +47,24 @@ namespace soportec
 
         protected void gridEquipos_RowCommand(object sender, GridViewCommandEventArgs e)
         {
-            int index = Convert.ToInt32(e.CommandArgument);
-            int idEquipo = Convert.ToInt32(gridEquipos.DataKeys[index].Value);
+            // Validar si CommandArgument tiene un valor
+            if (!string.IsNullOrEmpty(e.CommandArgument.ToString()))
+            {
+                int index = Convert.ToInt32(e.CommandArgument);
 
-            if (e.CommandName == "EditarRegistro")
-            {
-                Response.Redirect("EditarEquipo.aspx?id=" + idEquipo);
-            }
-            else if (e.CommandName == "EliminarRegistro")
-            {
-                EliminarEquipo(idEquipo);
+                if (index >= 0 && index < gridEquipos.Rows.Count) // Validación del índice
+                {
+                    int idEquipo = Convert.ToInt32(gridEquipos.DataKeys[index].Value);
+
+                    if (e.CommandName == "EditarRegistro")
+                    {
+                        Response.Redirect($"EditarEquipo.aspx?id={idEquipo}");
+                    }
+                    else if (e.CommandName == "EliminarRegistro")
+                    {
+                        EliminarEquipo(idEquipo);
+                    }
+                }
             }
         }
 
@@ -65,19 +72,23 @@ namespace soportec
         {
             try
             {
-                SqlCommand cmd = new SqlCommand("sp_EliminarEquipo", conexion); // SP ya creado
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@id_equipo", id);
+                using (SqlCommand cmd = new SqlCommand("sp_EliminarEquipo", conexion)) // SP ya creado
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@id_equipo", id);
 
-                conexion.Open();
-                cmd.ExecuteNonQuery();
-                conexion.Close();
-
+                    conexion.Open();
+                    cmd.ExecuteNonQuery();
+                }
                 CargarEquipos();
             }
             catch (Exception ex)
             {
                 lblMensaje.Text = "Error al eliminar: " + ex.Message;
+            }
+            finally
+            {
+                conexion.Close(); // Asegurar cierre de conexión
             }
         }
 
@@ -86,5 +97,4 @@ namespace soportec
             Response.Redirect("RegistroEquipo.aspx");
         }
     }
-
 }

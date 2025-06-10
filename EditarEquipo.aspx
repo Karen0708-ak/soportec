@@ -1,11 +1,11 @@
-﻿<%@ Page Title="Editar Equipo" Language="C#" MasterPageFile="~/Site.master" AutoEventWireup="true" CodeBehind="EditarEquipo.aspx.cs" Inherits="AppHospedaje.EditarEquipo" %>
+﻿<%@ Page Title="Editar Equipo" Language="C#" MasterPageFile="~/Site.master" AutoEventWireup="true" CodeBehind="EditarEquipo.aspx.cs" Inherits="soportec.EditarEquipo" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="TitleContent" runat="server">
     Editar Equipo
 </asp:Content>
 
 <asp:Content ID="MainContent" ContentPlaceHolderID="MainContent" runat="server">
-    <h2>✏️ Editar Equipo</h2>
+    <h2>Editar Equipo</h2>
     <table class="table">
             <tr><td>Nombre:</td><td><asp:TextBox ID="txtNombre" runat="server" CssClass="form-control" /></td></tr>
             <tr><td>Marca:</td><td><asp:TextBox ID="txtMarca" runat="server" CssClass="form-control" /></td></tr>
